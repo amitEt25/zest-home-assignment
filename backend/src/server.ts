@@ -1,4 +1,3 @@
-// src/server.ts
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { addTask } from "./taskQueue";
@@ -11,20 +10,18 @@ const port = process.env.SERVER_PORT || 4000;
 
 app.use(express.json());
 
-// Ensure logs directory exists
 const logsDir = __dirname + "/../../logs";
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
-// Validate required environment variables
 const requiredEnv = [
   "SERVER_PORT",
   "TASK_SIMULATED_DURATION",
   "TASK_SIMULATED_ERROR_PERCENTAGE",
   "TASK_ERROR_RETRY_DELAY",
   "WORKER_TIMEOUT",
-  "TASK_MAX_RETRIES"
+  "TASK_MAX_RETRIES",
 ];
 const missing = requiredEnv.filter((v) => !process.env[v]);
 if (missing.length) {

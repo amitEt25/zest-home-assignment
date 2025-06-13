@@ -5,6 +5,7 @@ import { logTask } from "./logger";
 
 const maxWorkers = os.cpus().length;
 const workers: Worker[] = [];
+const completedTasks = new Set<string>();
 
 interface Worker {
   id: string;
@@ -34,6 +35,9 @@ export function enqueueTask(task: { id: string; message: string }) {
 }
 
 async function runTask(worker: Worker, task: { id: string; message: string }) {
+  if (completedTasks.has(task.id)) {
+    return;
+  }
   worker.busy = true;
   stats.setHotWorkers(workers.filter((w) => w.busy).length);
   stats.setIdleWorkers(workers.filter((w) => !w.busy).length);
@@ -55,13 +59,20 @@ async function runTask(worker: Worker, task: { id: string; message: string }) {
 
     const failed = Math.random() * 100 < failRate;
     if (!failed) {
-      await logTask(worker.id, task.id, task.message);
-      stats.incrementSuccess();
+      if (!completedTasks.has(task.id)) {
+        completedTasks.add(task.id);
+        await logTask(worker.id, task.id, task.message, "SUCCESS");
+        stats.incrementSuccess();
+      }
       break;
     } else {
       stats.incrementRetry();
       if (attempt > maxRetries) {
-        stats.incrementFailure();
+        if (!completedTasks.has(task.id)) {
+          completedTasks.add(task.id);
+          await logTask(worker.id, task.id, task.message, "FAILURE");
+          stats.incrementFailure();
+        }
         break;
       }
       await sleep(retryDelay);
