@@ -43,10 +43,10 @@ async function runTask(worker: Worker, task: { id: string; message: string }) {
   stats.setIdleWorkers(workers.filter((w) => !w.busy).length);
 
   let attempt = 0;
-  const maxRetries = parseInt(process.env.TASK_MAX_RETRIES || "3");
+  const maxRetries = parseInt(process.env.TASK_MAX_RETRIES || "2");
   const retryDelay = parseInt(process.env.TASK_ERROR_RETRY_DELAY || "1000");
   const duration = parseInt(process.env.TASK_SIMULATED_DURATION || "500");
-  const failRate = parseInt(process.env.TASK_SIMULATED_ERROR_PERCENTAGE || "0");
+  const failRate = parseInt(process.env.TASK_SIMULATED_ERROR_PERCENTAGE || "70");
 
   while (attempt <= maxRetries) {
     attempt++;
@@ -83,7 +83,6 @@ async function runTask(worker: Worker, task: { id: string; message: string }) {
   stats.setHotWorkers(workers.filter((w) => w.busy).length);
   stats.setIdleWorkers(workers.filter((w) => !w.busy).length);
 
-  // Re-check queue
   const nextTask = getNextTask();
   if (nextTask) {
     runTask(worker, nextTask);

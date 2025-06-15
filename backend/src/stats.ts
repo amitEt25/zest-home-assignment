@@ -18,6 +18,7 @@ export const stats = {
   setQueueLength: (length: number) => (currentQueueLength = length),
   setIdleWorkers: (count: number) => (idleWorkers = count),
   setHotWorkers: (count: number) => (hotWorkers = count),
+
   getStats: () => ({
     tasksProcessed,
     taskRetries,

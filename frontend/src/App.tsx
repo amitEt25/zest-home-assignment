@@ -2,9 +2,21 @@ import React, { useEffect, useState } from "react";
 import { Container, TextField, Button, Typography, Card, CardContent, Box, Alert, Stack, useTheme } from "@mui/material";
 import { createTask, fetchStats } from "./api";
 
+
+interface Stats {
+  totalTasks: number;
+  completedTasks: number;
+  failedTasks: number;
+  retries: number;
+  avgProcessingTime: number;
+  queueLength: number;
+  idleWorkers: number;
+  hotWorkers: number;
+}
+
 const App = () => {
   const [message, setMessage] = useState("");
-  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const theme = useTheme();
