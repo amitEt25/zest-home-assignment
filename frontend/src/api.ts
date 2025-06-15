@@ -19,7 +19,7 @@ interface StatsResponse {
 }
 
 const API_URL = import.meta.env.VITE_API_URL;
-const REQUEST_TIMEOUT = 5000;
+const REQUEST_TIMEOUT = Number(import.meta.env.VITE_REQUEST_TIMEOUT);
 
 const ERROR_MESSAGES = {
   API_URL_MISSING:
