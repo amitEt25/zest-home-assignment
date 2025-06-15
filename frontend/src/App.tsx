@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Container, TextField, Button, Typography, Card, CardContent, Box, Alert, Stack, useTheme } from "@mui/material";
 import { createTask, fetchStats } from "./api";
+import CircularProgress from "@mui/material/CircularProgress";
 
 
 interface Stats {
@@ -19,6 +20,7 @@ const App = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const theme = useTheme();
 
   const handleSubmit = async () => {
@@ -28,6 +30,8 @@ const App = () => {
     try {
       await createTask(message);
       setMessage("");
+      setSuccess("Task added successfully!");
+      setTimeout(() => setSuccess(null), 2000);
       await loadStats();
     } catch {
       setError("Failed to add task");
@@ -83,7 +87,11 @@ const App = () => {
             <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
               <TextField
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => {
+                  setMessage(e.target.value);
+                  setError(null);
+                  setSuccess(null);
+                }}
                 placeholder="Enter task message"
                 label="Task Message"
                 variant="outlined"
@@ -93,7 +101,7 @@ const App = () => {
               />
               <Button
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || !message.trim()}
                 variant="contained"
                 size="large"
                 sx={{ minWidth: 120, fontWeight: 600 }}
@@ -101,6 +109,9 @@ const App = () => {
                 {loading ? "Adding..." : "Add Task"}
               </Button>
             </Stack>
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>
+            )}
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
             )}
@@ -109,7 +120,7 @@ const App = () => {
             </Typography>
             <Card variant="outlined" sx={{ bgcolor: "background.paper", p: 2, borderRadius: 2, boxShadow: 2 }}>
               <pre style={{ margin: 0, fontSize: 16, fontFamily: 'Fira Mono, monospace' }}>
-                {stats ? JSON.stringify(stats, null, 2) : "Loading..."}
+                {stats ? JSON.stringify(stats, null, 2) : <CircularProgress size={24} />}
               </pre>
             </Card>
           </CardContent>
