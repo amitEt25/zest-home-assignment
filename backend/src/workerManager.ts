@@ -6,6 +6,7 @@ import { logTask } from "./logger";
 const maxWorkers = os.cpus().length;
 const workers: Worker[] = [];
 const completedTasks = new Set<string>();
+const inProgressTasks = new Set<string>();
 
 interface Worker {
   id: string;
@@ -35,9 +36,14 @@ export function enqueueTask(task: { id: string; message: string }) {
 }
 
 async function runTask(worker: Worker, task: { id: string; message: string }) {
-  if (completedTasks.has(task.id)) {
-    return;
+  if (completedTasks.has(task.id) || inProgressTasks.has(task.id)) return;
+  inProgressTasks.add(task.id);
+
+  if (worker.timeout) {
+    clearTimeout(worker.timeout);
+    worker.timeout = undefined;
   }
+
   worker.busy = true;
   stats.setHotWorkers(workers.filter((w) => w.busy).length);
   stats.setIdleWorkers(workers.filter((w) => !w.busy).length);
@@ -46,9 +52,16 @@ async function runTask(worker: Worker, task: { id: string; message: string }) {
   const maxRetries = parseInt(process.env.TASK_MAX_RETRIES || "2");
   const retryDelay = parseInt(process.env.TASK_ERROR_RETRY_DELAY || "1000");
   const duration = parseInt(process.env.TASK_SIMULATED_DURATION || "500");
-  const failRate = parseInt(process.env.TASK_SIMULATED_ERROR_PERCENTAGE || "70");
+  const failRate = parseInt(
+    process.env.TASK_SIMULATED_ERROR_PERCENTAGE || "70"
+  );
+
+  const startTime = new Date().toISOString();
+  let endTime: string;
 
   while (attempt <= maxRetries) {
+    if (completedTasks.has(task.id)) break;
+
     attempt++;
     stats.incrementProcessed();
 
@@ -58,23 +71,32 @@ async function runTask(worker: Worker, task: { id: string; message: string }) {
     stats.addProcessingTime(elapsed);
 
     const failed = Math.random() * 100 < failRate;
+    endTime = new Date().toISOString();
+
     if (!failed) {
-      if (!completedTasks.has(task.id)) {
-        completedTasks.add(task.id);
-        await logTask(worker.id, task.id, task.message, "SUCCESS");
-        stats.incrementSuccess();
-      }
+      completedTasks.add(task.id);
+      inProgressTasks.delete(task.id);
+      await logTask(
+        worker.id,
+        task.id,
+        `${task.message} | start: ${startTime} | end: ${endTime}`,
+        "SUCCESS"
+      );
+      stats.incrementSuccess();
+      break;
+    } else if (attempt > maxRetries) {
+      completedTasks.add(task.id);
+      inProgressTasks.delete(task.id);
+      await logTask(
+        worker.id,
+        task.id,
+        `${task.message} | start: ${startTime} | end: ${endTime}`,
+        "FAILURE"
+      );
+      stats.incrementFailure();
       break;
     } else {
       stats.incrementRetry();
-      if (attempt > maxRetries) {
-        if (!completedTasks.has(task.id)) {
-          completedTasks.add(task.id);
-          await logTask(worker.id, task.id, task.message, "FAILURE");
-          stats.incrementFailure();
-        }
-        break;
-      }
       await sleep(retryDelay);
     }
   }

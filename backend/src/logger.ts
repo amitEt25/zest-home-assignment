@@ -14,6 +14,11 @@ export async function logTask(
   const timestamp = new Date().toISOString();
   const line = `${timestamp} | Worker ${workerId} | Task ${taskId} | ${status} | ${message}\n`;
 
-  lock = lock.then(() => fs.appendFile(logFile, line)).catch(() => {});
+  lock = lock
+    .then(() => fs.appendFile(logFile, line))
+    .catch((err) => {
+      console.error("Log write error:", err);
+    });
+
   await lock;
 }
