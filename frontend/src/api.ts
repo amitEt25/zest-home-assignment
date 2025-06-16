@@ -1,24 +1,7 @@
 import axios, { AxiosError } from "axios";
+import type { StatsResponse, TaskResponse } from "./interface";
 
-interface TaskResponse {
-  id: string;
-  message: string;
-  status: string;
-  createdAt: string;
-}
-
-interface StatsResponse {
-  tasksProcessed: number;
-  succeeded: number;
-  failed: number;
-  taskRetries: number;
-  avgProcessingTime: number;
-  currentQueueLength: number;
-  idleWorkers: number;
-  hotWorkers: number;
-}
-
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "";
 const REQUEST_TIMEOUT = Number(import.meta.env.VITE_REQUEST_TIMEOUT);
 
 const ERROR_MESSAGES = {
@@ -27,10 +10,6 @@ const ERROR_MESSAGES = {
   CREATE_TASK_FAILED: "Failed to create task",
   FETCH_STATS_FAILED: "Failed to fetch statistics",
 } as const;
-
-if (!API_URL) {
-  throw new Error(ERROR_MESSAGES.API_URL_MISSING);
-}
 
 const api = axios.create({
   baseURL: API_URL,
