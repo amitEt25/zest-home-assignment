@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { addTask } from "./taskQueue";
 import { stats } from "./stats";
+import { getWorkerStats } from "./workerManager";
 import fs from "fs";
 import path from "path";
 
@@ -35,7 +36,7 @@ if (missing.length) {
 
 app.post("/tasks", (req: Request, res: Response): void => {
   const { message } = req.body;
-  if (!message) {
+  if (message === undefined) {
     res.status(400).json({ error: "Missing message" });
     return;
   }
@@ -48,6 +49,39 @@ app.get("/statistics", (req: Request, res: Response): void => {
   res.json(stats.getStats());
 });
 
+app.get("/workers", (req: Request, res: Response): void => {
+  res.json(getWorkerStats());
+});
+
+app.get("/health", (req: Request, res: Response): void => {
+  const workerStats = getWorkerStats();
+  const taskStats = stats.getStats();
+
+  res.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    workers: {
+      total: workerStats.totalWorkers,
+      busy: workerStats.busyWorkers,
+      idle: workerStats.idleWorkers,
+      pool: {
+        max: workerStats.maxPoolWorkers,
+        active: workerStats.activePoolWorkers,
+        queued: workerStats.queuedPoolTasks,
+      },
+    },
+    tasks: {
+      processed: taskStats.tasksProcessed,
+      succeeded: taskStats.succeeded,
+      failed: taskStats.failed,
+      retries: taskStats.taskRetries,
+      queueLength: taskStats.currentQueueLength,
+    },
+  });
+});
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+export { app };

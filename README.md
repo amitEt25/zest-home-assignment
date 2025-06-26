@@ -30,8 +30,8 @@ It features a Node.js/Express backend and a React/Vite frontend, letting users s
 ### 1. Clone the repository
 
 ```bash
-git clone <your-repo-url>
-cd <your-repo-name>
+git clone https://github.com/amitEt25/zest-home-assignment.git
+cd zest-home-assignment
 ```
 
 ### 2. Backend setup

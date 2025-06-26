@@ -2,8 +2,11 @@ import os from "os";
 import { getNextTask } from "./taskQueue";
 import { stats } from "./stats";
 import { logTask } from "./logger";
+import { SubprocessManager } from "./subprocessManager";
 
 const maxWorkers = os.cpus().length;
+
+const subprocessManager = new SubprocessManager(maxWorkers);
 const workers: Worker[] = [];
 const completedTasks = new Set<string>();
 const inProgressTasks = new Set<string>();
@@ -12,6 +15,7 @@ interface Worker {
   id: string;
   timeout?: NodeJS.Timeout;
   busy: boolean;
+  currentTask?: { id: string; message: string };
 }
 
 function createWorker(): Worker {
@@ -31,13 +35,15 @@ export function enqueueTask(task: { id: string; message: string }) {
   }
 
   if (idleWorker) {
-    runTask(idleWorker, task);
+    executeWithRetries(idleWorker, task);
   }
 }
 
-async function runTask(worker: Worker, task: { id: string; message: string }) {
+async function executeWithRetries(worker: Worker, task: { id: string; message: string }) {
   if (completedTasks.has(task.id) || inProgressTasks.has(task.id)) return;
+
   inProgressTasks.add(task.id);
+  worker.currentTask = task;
 
   if (worker.timeout) {
     clearTimeout(worker.timeout);
@@ -45,79 +51,115 @@ async function runTask(worker: Worker, task: { id: string; message: string }) {
   }
 
   worker.busy = true;
-  stats.setHotWorkers(workers.filter((w) => w.busy).length);
-  stats.setIdleWorkers(workers.filter((w) => !w.busy).length);
-
-  let attempt = 0;
-  const maxRetries = parseInt(process.env.TASK_MAX_RETRIES || "2");
-  const retryDelay = parseInt(process.env.TASK_ERROR_RETRY_DELAY || "1000");
-  const duration = parseInt(process.env.TASK_SIMULATED_DURATION || "500");
-  const failRate = parseInt(
-    process.env.TASK_SIMULATED_ERROR_PERCENTAGE || "70"
-  );
+  updateWorkerStats();
 
   const startTime = new Date().toISOString();
-  let endTime: string;
+  const maxRetries = parseInt(process.env.TASK_MAX_RETRIES || "2");
+  const retryDelay = parseInt(process.env.TASK_ERROR_RETRY_DELAY || "1000");
+  let attempt = 0;
+  let result;
 
   while (attempt <= maxRetries) {
-    if (completedTasks.has(task.id)) break;
-
     attempt++;
     stats.incrementProcessed();
 
-    const start = Date.now();
-    await sleep(duration);
-    const elapsed = Date.now() - start;
-    stats.addProcessingTime(elapsed);
-
-    const failed = Math.random() * 100 < failRate;
-    endTime = new Date().toISOString();
-
-    if (!failed) {
-      completedTasks.add(task.id);
-      inProgressTasks.delete(task.id);
-      await logTask(
-        worker.id,
-        task.id,
-        `${task.message} | start: ${startTime} | end: ${endTime}`,
-        "SUCCESS"
-      );
-      stats.incrementSuccess();
-      break;
-    } else if (attempt > maxRetries) {
-      completedTasks.add(task.id);
-      inProgressTasks.delete(task.id);
-      await logTask(
-        worker.id,
-        task.id,
-        `${task.message} | start: ${startTime} | end: ${endTime}`,
-        "FAILURE"
-      );
-      stats.incrementFailure();
-      break;
-    } else {
+    try {
+      result = await subprocessManager.runSubprocessTask(task.id, task.message);
+      stats.addProcessingTime(result.duration);
+      if (result.success) break;
+      stats.incrementRetry();
+      await sleep(retryDelay);
+    } catch (error) {
       stats.incrementRetry();
       await sleep(retryDelay);
     }
   }
 
-  worker.busy = false;
-  stats.setHotWorkers(workers.filter((w) => w.busy).length);
-  stats.setIdleWorkers(workers.filter((w) => !w.busy).length);
+  const endTime = new Date().toISOString();
 
+  if (!result) result = { success: false, duration: 0, error: 'Unknown error' };
+
+  if (result.success) {
+    completedTasks.add(task.id);
+    stats.incrementSuccess();
+    try {
+      await logTask(worker.id, task.id, `${task.message} | start: ${startTime} | end: ${endTime}`, "SUCCESS");
+    } catch (e) {
+      console.error("Failed to log success", e);
+    }
+  } else {
+    completedTasks.add(task.id);
+    stats.incrementFailure();
+    try {
+      await logTask(worker.id, task.id, `${task.message} | start: ${startTime} | end: ${endTime} | error: ${result.error || 'Unknown error'}`, "FAILURE");
+    } catch (e) {
+      console.error("Failed to log failure", e);
+    }
+  }
+
+  inProgressTasks.delete(task.id);
+  worker.busy = false;
+  worker.currentTask = undefined;
+  updateWorkerStats();
+
+  maybeRunNext(worker);
+}
+
+function maybeRunNext(worker: Worker) {
   const nextTask = getNextTask();
   if (nextTask) {
-    runTask(worker, nextTask);
+    executeWithRetries(worker, nextTask);
   } else {
     const timeout = parseInt(process.env.WORKER_TIMEOUT || "10000");
     worker.timeout = setTimeout(() => {
       const idx = workers.indexOf(worker);
-      if (idx !== -1 && !worker.busy) workers.splice(idx, 1);
-      stats.setIdleWorkers(workers.filter((w) => !w.busy).length);
+      if (idx !== -1 && !worker.busy) {
+        workers.splice(idx, 1);
+        updateWorkerStats();
+      }
     }, timeout);
   }
 }
 
+function updateWorkerStats() {
+  const busyWorkers = workers.filter((w) => w.busy).length;
+  const idleWorkers = workers.filter((w) => !w.busy).length;
+  stats.setHotWorkers(busyWorkers);
+  stats.setIdleWorkers(idleWorkers);
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function getWorkerStats() {
+  const poolStats = subprocessManager.getStats();
+  return {
+    totalWorkers: workers.length,
+    busyWorkers: workers.filter((w) => w.busy).length,
+    idleWorkers: workers.filter((w) => !w.busy).length,
+    completedTasks: completedTasks.size,
+    inProgressTasks: inProgressTasks.size,
+    maxPoolWorkers: poolStats.maxWorkers,
+    activePoolWorkers: poolStats.activeWorkers,
+    queuedPoolTasks: poolStats.queuedTasks,
+  };
+}
+
+export function resetWorkers() {
+  workers.forEach(worker => {
+    if (worker.timeout) {
+      clearTimeout(worker.timeout);
+    }
+  });
+
+  workers.length = 0;
+  completedTasks.clear();
+  inProgressTasks.clear();
+
+  updateWorkerStats();
+}
+
+export async function shutdownWorkers(): Promise<void> {
+  await subprocessManager.shutdown();
 }

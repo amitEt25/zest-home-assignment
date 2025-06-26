@@ -24,9 +24,22 @@ export const stats = {
     succeeded: tasksSucceeded,
     failed: tasksFailed,
     avgProcessingTime:
-      tasksProcessed === 0 ? 0 : totalProcessingTime / tasksProcessed,
+      tasksProcessed === 0 ? 0 : Math.round(totalProcessingTime / tasksProcessed),
     currentQueueLength,
     idleWorkers,
     hotWorkers,
+    totalWorkers: idleWorkers + hotWorkers,
+    successRate: tasksProcessed === 0 ? 0 : Math.round((tasksSucceeded / tasksProcessed) * 100),
+    failureRate: tasksProcessed === 0 ? 0 : Math.round((tasksFailed / tasksProcessed) * 100),
   }),
+  reset: () => {
+    tasksProcessed = 0;
+    taskRetries = 0;
+    tasksSucceeded = 0;
+    tasksFailed = 0;
+    totalProcessingTime = 0;
+    currentQueueLength = 0;
+    idleWorkers = 0;
+    hotWorkers = 0;
+  },
 };

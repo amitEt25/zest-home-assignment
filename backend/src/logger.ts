@@ -3,7 +3,7 @@ import path from "path";
 
 const logFile = path.join(__dirname, "../../logs/tasks.log");
 
-let lock = Promise.resolve();
+let writeQueue: Promise<void> = Promise.resolve();
 
 export async function logTask(
   workerId: string,
@@ -14,11 +14,36 @@ export async function logTask(
   const timestamp = new Date().toISOString();
   const line = `${timestamp} | Worker ${workerId} | Task ${taskId} | ${status} | ${message}\n`;
 
-  lock = lock
-    .then(() => fs.appendFile(logFile, line))
+  writeQueue = writeQueue
+    .then(async () => {
+      try {
+        await fs.appendFile(logFile, line, { flag: 'a' });
+      } catch (err) {
+        console.error("Log write error:", err);
+      }
+    })
     .catch((err) => {
-      console.error("Log write error:", err);
+      console.error("Log queue error:", err);
     });
 
-  await lock;
+  await writeQueue;
+}
+
+export async function readLogs(): Promise<string> {
+  try {
+    return await fs.readFile(logFile, 'utf-8');
+  } catch (err) {
+    if ((err as any).code === 'ENOENT') {
+      return '';
+    }
+    throw err;
+  }
+}
+
+export async function clearLogs(): Promise<void> {
+  try {
+    await fs.writeFile(logFile, '');
+  } catch (err) {
+    console.error("Log clear error:", err);
+  }
 }
