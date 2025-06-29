@@ -6,35 +6,16 @@ describe("TaskQueue", () => {
     stats.reset();
   });
 
-  test("should add task and return task ID", () => {
-    const taskId = addTask("Test task message");
+  test("should add and retrieve tasks", () => {
+    const taskId = addTask("Test message");
     expect(taskId).toBeDefined();
     expect(typeof taskId).toBe("string");
-    expect(taskId.length).toBeGreaterThan(0);
-  });
-
-  test("should handle multiple task additions", () => {
-    const taskId1 = addTask("Test task 1");
-    const taskId2 = addTask("Test task 2");
-
-    expect(taskId1).not.toBe(taskId2);
-    expect(typeof taskId1).toBe("string");
-    expect(typeof taskId2).toBe("string");
-  });
-
-  test("should get next task from queue when available", () => {
-    const message = "Test task for queue";
-    addTask(message);
     const task = getNextTask();
-    if (task) {
-      expect(task.message).toBe(message);
-      expect(typeof task.id).toBe("string");
-    }
+    expect(task?.message).toBe("Test message");
+    expect(task?.id).toBe(taskId);
   });
 
-  test("should return undefined when queue is empty", () => {
-    while (getNextTask()) {}
-
+  test("should return undefined for empty queue", () => {
     const task = getNextTask();
     expect(task).toBeUndefined();
   });

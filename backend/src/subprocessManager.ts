@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
-import { TaskProcessor } from './taskProcessor';
+import { EventEmitter } from "events";
+import { TaskProcessor } from "./taskProcessor";
 
 export interface TaskResult {
   success: boolean;
@@ -28,9 +28,12 @@ export class SubprocessManager extends EventEmitter {
     this.taskProcessor = TaskProcessor.getInstance();
   }
 
-  async runSubprocessTask(taskId: string, message: string): Promise<TaskResult> {
+  async runSubprocessTask(
+    taskId: string,
+    message: string
+  ): Promise<TaskResult> {
     if (this.isShuttingDown) {
-      throw new Error('Worker pool is shutting down');
+      throw new Error("Worker pool is shutting down");
     }
 
     return new Promise((resolve, reject) => {
@@ -39,7 +42,7 @@ export class SubprocessManager extends EventEmitter {
         message,
         resolve,
         reject,
-        startTime: Date.now()
+        startTime: Date.now(),
       };
 
       this.taskQueue.push(task);
@@ -48,7 +51,10 @@ export class SubprocessManager extends EventEmitter {
   }
 
   private async processNextTask(): Promise<void> {
-    if (this.activeWorkers.size >= this.maxWorkers || this.taskQueue.length === 0) {
+    if (
+      this.activeWorkers.size >= this.maxWorkers ||
+      this.taskQueue.length === 0
+    ) {
       return;
     }
 
@@ -59,7 +65,10 @@ export class SubprocessManager extends EventEmitter {
     this.activeWorkers.add(workerId);
 
     try {
-      const result = await this.taskProcessor.processTask(task.id, task.message);
+      const result = await this.taskProcessor.processTask(
+        task.id,
+        task.message
+      );
       task.resolve(result);
     } catch (error) {
       task.reject(error as Error);
@@ -78,22 +87,22 @@ export class SubprocessManager extends EventEmitter {
       maxWorkers: this.maxWorkers,
       activeWorkers: this.activeWorkers.size,
       queuedTasks: this.taskQueue.length,
-      isShuttingDown: this.isShuttingDown
+      isShuttingDown: this.isShuttingDown,
     };
   }
 
   async shutdown(): Promise<void> {
     this.isShuttingDown = true;
-    
+
     while (this.activeWorkers.size > 0) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    
-    this.taskQueue.forEach(task => {
-      task.reject(new Error('Worker pool shutdown'));
+
+    this.taskQueue.forEach((task) => {
+      task.reject(new Error("Worker pool shutdown"));
     });
     this.taskQueue = [];
-    
-    this.emit('shutdown');
+
+    this.emit("shutdown");
   }
-} 
+}

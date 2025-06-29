@@ -1,4 +1,16 @@
-2025-06-26T23:28:39.334Z | Worker ztr5m2emhc | Task success-task | SUCCESS | do something | start: 2025-06-26T23:28:38.786Z | end: 2025-06-26T23:28:39.334Z
-2025-06-26T23:28:39.344Z | Worker y42edun1yc | Task fail-task | SUCCESS | fail | start: 2025-06-26T23:28:38.798Z | end: 2025-06-26T23:28:39.344Z
-2025-06-26T23:28:39.394Z | Worker vaee6u4mx7r | Task e68d6d91-4728-49d9-8c2d-55e2cc501954 | SUCCESS | Test task for queue | start: 2025-06-26T23:28:38.834Z | end: 2025-06-26T23:28:39.394Z
-2025-06-26T23:28:39.586Z | Worker m0kwhpqiyle | Task db9f0a10-51fd-4afb-a6a3-8b3ac1f86113 | SUCCESS | integration test | start: 2025-06-26T23:28:39.040Z | end: 2025-06-26T23:28:39.586Z
+2025-06-29T22:54:14.363Z | Worker suufd447xeh | Task a1c37757-cf80-425b-a998-a563d8cd26a5 | SUCCESS | task 1
+2025-06-29T22:54:14.795Z | Worker y4zu11gypcb | Task 29f4b618-3b4f-4c0b-b321-f5c3eb5cbee0 | SUCCESS | test failure
+2025-06-29T22:59:12.967Z | Worker cx8lnmswoqd | Task 36d47acc-e2c6-4b89-b743-7695075db8fe | SUCCESS | erw
+2025-06-29T22:59:13.923Z | Worker cx8lnmswoqd | Task 154c47e1-85ad-49d5-be06-af7415d27892 | SUCCESS | t4
+2025-06-29T22:59:14.554Z | Worker iuqhv3tdkv | Task f99834a8-06ac-4cdd-8ec2-5bcc2ec14316 | FAILURE | vhj
+2025-06-29T22:59:15.464Z | Worker qbxu5le21vi | Task f7d8264d-e7f1-427f-8280-9e66b2b3eaf3 | SUCCESS | rew
+2025-06-29T22:59:16.201Z | Worker iuqhv3tdkv | Task f35e9b6e-d867-4f4b-9fc3-2e44ccfc317a | SUCCESS | ter
+2025-06-29T22:59:18.601Z | Worker qbxu5le21vi | Task f89d9056-731e-4637-8cd1-8feeb2d301ea | SUCCESS | et
+2025-06-29T22:59:20.864Z | Worker iuqhv3tdkv | Task 1b53db5c-4802-4aef-b648-093f6c009e60 | FAILURE | t4r
+2025-06-29T22:59:22.375Z | Worker cx8lnmswoqd | Task 404495be-ac6d-408a-83f5-9cd65c82f620 | SUCCESS | yt4r
+2025-06-29T22:59:22.575Z | Worker pazsio5gcva | Task 4c3d9acd-4074-47bb-a3eb-94066c7af54b | SUCCESS | y53r
+2025-06-29T22:59:23.045Z | Worker qbxu5le21vi | Task af9af1e0-acbf-47d0-ad3c-9691f7c169e7 | SUCCESS | tre
+2025-06-29T22:59:25.049Z | Worker iuqhv3tdkv | Task e0444d72-4499-4ce0-a84b-4d9541b2f692 | SUCCESS | tre
+2025-06-29T22:59:25.166Z | Worker cx8lnmswoqd | Task 7bf05a61-30b2-4926-9b38-f6c41e771d64 | SUCCESS | t43
+2025-06-29T22:59:27.880Z | Worker qbxu5le21vi | Task 8ac0a36c-e7e1-443f-85dc-7116685ff15c | FAILURE | y34
+2025-06-29T22:59:28.972Z | Worker pazsio5gcva | Task e89ed328-6082-4aac-a424-1a69708b9514 | FAILURE | t43
