@@ -43,7 +43,7 @@ export class TaskProcessor {
         });
       }
 
-      const timeout = parseInt(process.env.TASK_TIMEOUT || "30000");
+      const timeout = 30000;
       const timeoutId = setTimeout(() => {
         if (!childProcess.killed && !finished) {
           childProcess.kill("SIGTERM");

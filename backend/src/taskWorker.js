@@ -1,19 +1,3 @@
-const fs = require("fs").promises;
-const path = require("path");
-
-const logFile = path.join(__dirname, "../../logs/tasks.log");
-
-async function writeToLog(workerId, taskId, message, status) {
-  const timestamp = new Date().toISOString();
-  const line = `${timestamp} | Worker ${workerId} | Task ${taskId} | ${status} | ${message}\n`;
-
-  try {
-    await fs.appendFile(logFile, line, { flag: "a" });
-  } catch (err) {
-    console.error("Log write error:", err);
-  }
-}
-
 process.on("message", async (data) => {
   if (
     !data ||

@@ -11,15 +11,15 @@ It features a Node.js/Express backend and a React/Vite frontend, letting users s
 
 ```
 /            # Root directory
-├─ backend/  # Node.js API and worker logic
-├─ frontend/ # React dashboard application
+├─ backend/  # Node.js API and worker logic & tests
+├─ frontend/ # React dashboard application & tests
 ```
 
 ---
 
 ## Tech Stack
 
-- **Backend:** Node.js, Express, TypeScript
+- **Backend:** Node.js, Express, TypeScript, Jest
 - **Frontend:** React, Vite, TypeScript, Material-UI
 - **Other:** Axios (HTTP client), UUID (task IDs), dotenv (env management)
 
@@ -39,7 +39,7 @@ cd zest-home-assignment
 ```bash
 cd backend
 npm install
-cp .env.example .env   # Configure environment variables as needed
+cp .env.example .env   # Configure as needed
 npm run dev            # or: npm start
 ```
 
@@ -52,7 +52,7 @@ cp .env.example .env   # Configure as needed
 npm run dev
 ```
 
-The frontend will be available at [http://localhost:3000](http://localhost:3000) and will communicate with the backend.
+The frontend will be available at [http://localhost:3000](http://localhost:3000) and will proxy API calls to the backend.
 
 ---
 
@@ -60,7 +60,7 @@ The frontend will be available at [http://localhost:3000](http://localhost:3000)
 
 ### Backend (`backend/.env`)
 
-- `SERVER_PORT` — API server port
+- `SERVER_PORT` — HTTP server port
 - `TASK_SIMULATED_DURATION` — Task processing duration in ms
 - `TASK_SIMULATED_ERROR_PERCENTAGE` — Simulated failure rate (0-100)
 - `TASK_ERROR_RETRY_DELAY` — Delay before retrying a failed task (ms)
@@ -69,19 +69,25 @@ The frontend will be available at [http://localhost:3000](http://localhost:3000)
 
 ### Frontend (`frontend/.env`)
 
-- `VITE_API_URL` — The base URL for the backend API.  
-  If you're using the Vite proxy (during development), set this to an empty string (`""`).
+- `VITE_API_URL` — Base URL for the backend API.  
+  If you're using the Vite proxy (during development). Leave as "" if using Vite’s proxy.
 - `VITE_REQUEST_TIMEOUT` — API request timeout in ms
 
 ---
 
 ## Application Overview
 
-- **Task Submission:** Users submit tasks via the frontend UI. The backend enqueues each task for processing.
-- **Processing:** Workers (up to the number of CPU cores) process tasks, simulating work and random failures.
-- **Retries:** Failed tasks are retried with a delay, up to the configured maximum.
-- **Logging:** Each task attempt (success or failure) is logged with a timestamp, worker ID, task ID, and message.
-- **Live Statistics:** The dashboard displays total attempts, retries, successes, failures, average processing time, queue length, and worker status.
+1. Task Submission:
+   Frontend validates that message is a non-empty string, then calls POST /tasks.
+
+2. Enqueue & Processing:
+   Backend assigns a UUID, enqueues the task, and returns { taskId } immediately. A pool of workers (up to CPU cores) picks up tasks, simulates processing (sleep + random failure), and retries up to TASK_MAX_RETRIES.
+
+3. Logging:
+   Each attempt—success or final failure—is appended atomically to logs/tasks.log with timestamp, worker ID, task ID and message.
+
+4. Real-Time Statistics:
+   Frontend polls GET /statistics every 1.5s and displays live metrics.
 
 ---
 
@@ -90,23 +96,39 @@ The frontend will be available at [http://localhost:3000](http://localhost:3000)
 ### POST `/tasks`
 
 - Request body: `{ "message": "your task here" }`
+- Validation: Returns 400 Bad Request if message is missing or not a string.
 - Response: `{ "taskId": "..." }`
 
 ### GET `/statistics`
 
 - Response example:
+
   ```json
   {
-    "tasksProcessed": 0,
-    "taskRetries": 0,
-    "succeeded": 0,
-    "failed": 0,
-    "avgProcessingTime": 0,
+    "tasksProcessed": 42,
+    "tasksCompleted": 42,
+    "taskRetries": 15,
+    "succeeded": 35,
+    "failed": 7,
+    "avgProcessingTime": 512,
     "currentQueueLength": 0,
-    "idleWorkers": 0,
+    "idleWorkers": 4,
     "hotWorkers": 0
   }
   ```
+
+---
+
+## Testing
+
+Backend
+From backend/:
+
+```bash
+npm test
+```
+
+Unit tests (stats, logger, queue, workerManager, etc.)
 
 ---
 
@@ -118,10 +140,13 @@ The frontend will be available at [http://localhost:3000](http://localhost:3000)
 
 ## Additional Notes
 
-- The number of workers is determined by the number of CPU cores.
-- Workers exit after being idle for a configurable period.
-- All configuration is managed via environment variables.
-- The frontend uses Material-UI for a modern interface.
+- Workers scale up to the machine’s CPU-core count and exit after WORKER_TIMEOUT ms of idleness.
+
+- Retried tasks respect TASK_ERROR_RETRY_DELAY and stop after TASK_MAX_RETRIES.
+
+- Configuration is driven entirely by environment variables—no hard-coded values.
+
+- Frontend uses Material-UI for a clean, responsive dashboard.
 
 ---
 

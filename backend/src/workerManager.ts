@@ -2,14 +2,15 @@ import os from "os";
 import { getNextTask } from "./taskQueue";
 import { stats } from "./stats";
 import { logTask } from "./logger";
-import { SubprocessManager } from "./subprocessManager";
+import { TaskProcessor } from "./taskProcessor";
 
 const maxWorkers = os.cpus().length;
+const taskProcessor = TaskProcessor.getInstance();
 
-const subprocessManager = new SubprocessManager(maxWorkers);
 const workers: Worker[] = [];
 const completedTasks = new Set<string>();
 const inProgressTasks = new Set<string>();
+const MAX_COMPLETED_TASKS = 1000; // Limit memory usage
 
 interface Worker {
   id: string;
@@ -36,8 +37,6 @@ export function enqueueTask(task: { id: string; message: string }) {
 
   if (idleWorker) {
     executeWithRetries(idleWorker, task);
-  } else {
-    console.log(`No available workers for task ${task.id}, queued`);
   }
 }
 
@@ -65,11 +64,7 @@ async function executeWithRetries(
     attempt++;
 
     try {
-      const result = await subprocessManager.runSubprocessTask(
-        task.id,
-        task.message
-      );
-
+      const result = await taskProcessor.processTask(task.id, task.message);
       stats.addProcessingTime(result.duration);
 
       if (result.success) {
@@ -87,8 +82,6 @@ async function executeWithRetries(
         }
       }
     } catch (error) {
-      console.error(`Error processing task ${task.id}:`, error);
-
       if (attempt <= maxRetries) {
         stats.incrementRetry();
         await sleep(retryDelay);
@@ -104,6 +97,8 @@ async function executeWithRetries(
   inProgressTasks.delete(task.id);
   worker.currentTask = undefined;
   worker.busy = false;
+
+  cleanupCompletedTasks();
 
   if (worker.timeout) {
     clearTimeout(worker.timeout);
@@ -142,16 +137,13 @@ function sleep(ms: number): Promise<void> {
 }
 
 export function getWorkerStats() {
-  const poolStats = subprocessManager.getStats();
   return {
     totalWorkers: workers.length,
     busyWorkers: workers.filter((w) => w.busy).length,
     idleWorkers: workers.filter((w) => !w.busy).length,
     completedTasks: completedTasks.size,
     inProgressTasks: inProgressTasks.size,
-    maxPoolWorkers: poolStats.maxWorkers,
-    activePoolWorkers: poolStats.activeWorkers,
-    queuedPoolTasks: poolStats.queuedTasks,
+    maxWorkers: maxWorkers,
   };
 }
 
@@ -165,7 +157,6 @@ export function resetWorkers() {
   workers.length = 0;
   completedTasks.clear();
   inProgressTasks.clear();
-
   updateWorkerStats();
 }
 
@@ -175,5 +166,15 @@ export async function shutdownWorkers(): Promise<void> {
       clearTimeout(worker.timeout);
     }
   });
-  await subprocessManager.shutdown();
+}
+
+function cleanupCompletedTasks() {
+  if (completedTasks.size > MAX_COMPLETED_TASKS) {
+    const tasksArray = Array.from(completedTasks);
+    const tasksToRemove = tasksArray.slice(
+      0,
+      completedTasks.size - MAX_COMPLETED_TASKS
+    );
+    tasksToRemove.forEach((taskId) => completedTasks.delete(taskId));
+  }
 }

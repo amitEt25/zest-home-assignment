@@ -36,8 +36,8 @@ if (missing.length) {
 
 app.post("/tasks", (req: Request, res: Response): void => {
   const { message } = req.body;
-  if (message === undefined) {
-    res.status(400).json({ error: "Missing message" });
+  if (typeof message !== "string") {
+    res.status(400).json({ error: "Invalid message" });
     return;
   }
 
@@ -64,11 +64,7 @@ app.get("/health", (req: Request, res: Response): void => {
       total: workerStats.totalWorkers,
       busy: workerStats.busyWorkers,
       idle: workerStats.idleWorkers,
-      pool: {
-        max: workerStats.maxPoolWorkers,
-        active: workerStats.activePoolWorkers,
-        queued: workerStats.queuedPoolTasks,
-      },
+      max: workerStats.maxWorkers,
     },
     tasks: {
       processed: taskStats.tasksProcessed,

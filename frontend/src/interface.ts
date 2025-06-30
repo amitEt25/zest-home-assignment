@@ -1,8 +1,5 @@
 export interface TaskResponse {
-  id: string;
-  message: string;
-  status: string;
-  createdAt: string;
+  taskId: string;
 }
 
 export interface StatsResponse {

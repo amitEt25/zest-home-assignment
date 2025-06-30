@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Container,
   TextField,
@@ -10,6 +10,12 @@ import {
   Alert,
   Stack,
   useTheme,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
 } from "@mui/material";
 import { createTask, fetchStats } from "./api";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -33,8 +39,8 @@ const App = () => {
       setSuccess("Task added successfully!");
       setTimeout(() => setSuccess(null), 2000);
       await loadStats();
-    } catch {
-      setError("Failed to add task");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to add task");
     }
     setLoading(false);
   };
@@ -53,8 +59,10 @@ const App = () => {
         idleWorkers: data.idleWorkers,
         hotWorkers: data.hotWorkers,
       });
-    } catch {
-      setError("Failed to fetch statistics");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch statistics"
+      );
     }
   };
 
@@ -156,26 +164,58 @@ const App = () => {
             </Typography>
             <Card
               variant="outlined"
-              sx={{
-                bgcolor: "background.paper",
-                p: 2,
-                borderRadius: 2,
-                boxShadow: 2,
-              }}
+              sx={{ bgcolor: "background.paper", p: 2, borderRadius: 2 }}
             >
-              <pre
-                style={{
-                  margin: 0,
-                  fontSize: 16,
-                  fontFamily: "Fira Mono, monospace",
-                }}
-              >
-                {stats ? (
-                  JSON.stringify(stats, null, 2)
-                ) : (
+              {stats ? (
+                <TableContainer component={Paper} elevation={0}>
+                  <Table size="small">
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>Tasks Processed</TableCell>
+                        <TableCell align="right">
+                          {stats.tasksProcessed}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Succeeded</TableCell>
+                        <TableCell align="right">{stats.succeeded}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Failed</TableCell>
+                        <TableCell align="right">{stats.failed}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Task Retries</TableCell>
+                        <TableCell align="right">{stats.taskRetries}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Avg Processing Time</TableCell>
+                        <TableCell align="right">
+                          {stats.avgProcessingTime.toFixed(2)} ms
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Queue Length</TableCell>
+                        <TableCell align="right">
+                          {stats.currentQueueLength}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Idle Workers</TableCell>
+                        <TableCell align="right">{stats.idleWorkers}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Hot Workers</TableCell>
+                        <TableCell align="right">{stats.hotWorkers}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <Box display="flex" justifyContent="center" p={2}>
                   <CircularProgress size={24} />
-                )}
-              </pre>
+                </Box>
+              )}
             </Card>
           </CardContent>
         </Card>

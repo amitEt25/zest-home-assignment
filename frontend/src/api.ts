@@ -1,8 +1,8 @@
 import axios, { AxiosError } from "axios";
-import type { StatsResponse, TaskResponse } from "./interface";
+import type { StatsResponse } from "./interface";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
-const REQUEST_TIMEOUT = Number(import.meta.env.VITE_REQUEST_TIMEOUT);
+const REQUEST_TIMEOUT = Number(import.meta.env.VITE_REQUEST_TIMEOUT ?? 5000);
 
 const ERROR_MESSAGES = {
   API_URL_MISSING:
@@ -23,9 +23,11 @@ const handleError = (error: unknown, defaultMessage: string): never => {
   throw new Error(defaultMessage);
 };
 
-export const createTask = async (message: string): Promise<TaskResponse> => {
+export const createTask = async (
+  message: string
+): Promise<{ taskId: string }> => {
   try {
-    const { data } = await api.post<TaskResponse>("/tasks", { message });
+    const { data } = await api.post<{ taskId: string }>("/tasks", { message });
     return data;
   } catch (error) {
     return handleError(error, ERROR_MESSAGES.CREATE_TASK_FAILED);

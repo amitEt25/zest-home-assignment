@@ -20,17 +20,26 @@ export const stats = {
   setHotWorkers: (count: number) => (hotWorkers = count),
   getStats: () => ({
     tasksProcessed,
+    tasksCompleted: tasksSucceeded + tasksFailed,
     taskRetries,
     succeeded: tasksSucceeded,
     failed: tasksFailed,
     avgProcessingTime:
-      tasksProcessed === 0 ? 0 : Math.round(totalProcessingTime / tasksProcessed),
+      tasksProcessed === 0
+        ? 0
+        : Math.round(totalProcessingTime / tasksProcessed),
     currentQueueLength,
     idleWorkers,
     hotWorkers,
     totalWorkers: idleWorkers + hotWorkers,
-    successRate: tasksProcessed === 0 ? 0 : Math.round((tasksSucceeded / tasksProcessed) * 100),
-    failureRate: tasksProcessed === 0 ? 0 : Math.round((tasksFailed / tasksProcessed) * 100),
+    successRate:
+      tasksProcessed === 0
+        ? 0
+        : Math.round((tasksSucceeded / tasksProcessed) * 100),
+    failureRate:
+      tasksProcessed === 0
+        ? 0
+        : Math.round((tasksFailed / tasksProcessed) * 100),
   }),
   reset: () => {
     tasksProcessed = 0;
